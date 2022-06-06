@@ -26,6 +26,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from PIL import Image
+import torch
 
 from nerf import utils
 from nerf.ray_utils import get_rays
@@ -211,8 +212,8 @@ def get_bbox3d_for_blenderobj(camera_transforms, H, W, near=2.0, far=6.0):
   points = []
 
   for frame in camera_transforms["frames"]:
-    c2w = jnp.array(frame["transform_matrix"], dtype=jnp.float32)
-    rays_o, rays_d = get_rays(directions, c2w).numpy()
+    c2w = torch.FloatTensor(frame["transform_matrix"])
+    rays_o, rays_d = get_rays(directions, c2w)
     
     def find_min_max(pt):
       for i in range(3):
@@ -230,8 +231,8 @@ def get_bbox3d_for_blenderobj(camera_transforms, H, W, near=2.0, far=6.0):
       find_min_max(max_point)
 
   return (
-    jnp.array(min_bound) - jnp.array([1.0, 1.0, 1.0]), 
-    jnp.array(max_bound) + jnp.array([1.0, 1.0, 1.0]))
+    jnp.array(min_bound.numpy()) - jnp.array([1.0, 1.0, 1.0]), 
+    jnp.array(max_bound.numpy()) + jnp.array([1.0, 1.0, 1.0]))
 
 
 class Blender(Dataset):
