@@ -115,7 +115,7 @@ def train_step(model, rng, state, batch, lr):
 
 
 def log_tensorboard(tag, value, step, writer=None):
-  writer.scalar(tag, value, global_step=step)
+  writer.scalar(tag, value, step)
 
 
 def log_wandb(tag, value, step):
