@@ -144,6 +144,7 @@ def main(unused_argv):
     raise ValueError("data_dir must be set. None set now.")
 
   dataset = datasets.get_dataset("train", FLAGS)
+  print(dataset.bounding_box)
   FLAGS.bounding_box = dataset.bounding_box
   test_dataset = datasets.get_dataset("test", FLAGS)
 
