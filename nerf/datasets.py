@@ -231,8 +231,8 @@ def get_bbox3d_for_blenderobj(camera_transforms, H, W, near=2.0, far=6.0):
       find_min_max(max_point)
 
   return (
-    jnp.array(min_bound.numpy()) - jnp.array([1.0, 1.0, 1.0]), 
-    jnp.array(max_bound.numpy()) + jnp.array([1.0, 1.0, 1.0]))
+    jnp.array(min_bound) - jnp.array([1.0, 1.0, 1.0]), 
+    jnp.array(max_bound) + jnp.array([1.0, 1.0, 1.0]))
 
 
 class Blender(Dataset):
