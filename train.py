@@ -115,7 +115,7 @@ def train_step(model, rng, state, batch, lr):
 
 
 def log_tensorboard(tag, value, step, writer=None):
-  writer.add_scalar(tag, value, global_step=step)
+  writer.scalar(tag, value, global_step=step)
 
 
 def log_wandb(tag, value, step):
@@ -143,7 +143,6 @@ def main(unused_argv):
     raise ValueError("data_dir must be set. None set now.")
 
   dataset = datasets.get_dataset("train", FLAGS)
-  print(dataset.bounding_box)
   FLAGS.bounding_box = dataset.bounding_box
   test_dataset = datasets.get_dataset("test", FLAGS)
 
