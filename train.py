@@ -122,7 +122,7 @@ def log_wandb(tag, value, step):
   wandb.log({tag: value}, step=step)
 
 
-def log(loggers, tag, value, step):
+def log_value(loggers, tag, value, step):
   for l in loggers:
     l(tag, value, step)
 
@@ -202,7 +202,7 @@ def main(unused_argv):
       )
       loggers += (log_wandb,)
     
-    log = functools.partial(log, loggers=loggers)
+    log = functools.partial(log_value, loggers=loggers)
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
