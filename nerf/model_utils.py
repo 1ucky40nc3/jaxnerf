@@ -164,40 +164,40 @@ def posenc(x, min_deg, max_deg, legacy_posenc_order=False):
   return jnp.concatenate([x] + [four_feat], axis=-1)
 
 
-BOX_OFFSETS = torch.tensor([[[i,j,k] for i in [0, 1] for j in [0, 1] for k in [0, 1]]],
-                               device='cuda')
+# source: source: https://github.com/yashbhalgat/HashNeRF-pytorch
+BOX_OFFSETS = jnp.array([[[i,j,k] for i in [0, 1] for j in [0, 1] for k in [0, 1]]])
 
 
 def hash(coords, log2_hashmap_size):
-    '''
+    '''source: https://github.com/yashbhalgat/HashNeRF-pytorch
     coords: this function can process upto 7 dim coordinates
     log2T:  logarithm of T w.r.t 2
     '''
     primes = [1, 2654435761, 805459861, 3674653429, 2097192037, 1434869437, 2165219737]
 
-    xor_result = torch.zeros_like(coords)[..., 0]
+    xor_result = jnp.zeros_like(coords)[..., 0]
     for i in range(coords.shape[-1]):
         xor_result ^= coords[..., i] * primes[i]
 
-    return torch.tensor((1 << log2_hashmap_size)-1).to(xor_result.device) & xor_result
+    return jnp.tensor((1 << log2_hashmap_size) - 1).to(xor_result.device) & xor_result
 
 
 def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
-    '''
+    '''source: https://github.com/yashbhalgat/HashNeRF-pytorch
     xyz: 3D coordinates of samples. B x 3
     bounding_box: min and max x,y,z coordinates of object bbox
     resolution: number of voxels per axis
     '''
     box_min, box_max = bounding_box
 
-    if not torch.all(xyz <= box_max) or not torch.all(xyz >= box_min):
-        xyz = torch.clamp(xyz, min=box_min, max=box_max)
+    if not jnp.all(xyz <= box_max) or not jnp.all(xyz >= box_min):
+        xyz = jnp.clip(xyz, box_min, box_max)
 
     grid_size = (box_max-box_min)/resolution
     
-    bottom_left_idx = torch.floor((xyz - box_min) / grid_size).int()
-    voxel_min = bottom_left_idx*grid_size + box_min
-    voxel_max = voxel_min + torch.tensor([1.0, 1.0, 1.0])*grid_size
+    bottom_left_idx = jnp.floor((xyz - box_min) / grid_size).int()
+    voxel_min = bottom_left_idx * grid_size + box_min
+    voxel_max = voxel_min + jnp.array([1.0, 1.0, 1.0]) * grid_size
 
     voxel_idx = bottom_left_idx.unsqueeze(1) + BOX_OFFSETS
     hashed_idx = hash(voxel_idx, log2_hashmap_size)
@@ -206,13 +206,12 @@ def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
 
 
 def trilinear_interpolation(x, voxel_min, voxel_max, voxel_embedds):
-  """Compute a trilinear interpolation.
-  source: https://github.com/yashbhalgat/HashNeRF-pytorch
+  '''source: https://github.com/yashbhalgat/HashNeRF-pytorch
   x: B x 3
   voxel_min_vertex: B x 3
   voxel_max_vertex: B x 3
   voxel_embedds: B x 8 x 2
-  """
+  '''
   # source: https://en.wikipedia.org/wiki/Trilinear_interpolation
   weights = (x - voxel_min) / (voxel_max - voxel_min) # B x 3
 
@@ -234,9 +233,7 @@ def trilinear_interpolation(x, voxel_min, voxel_max, voxel_embedds):
 
 
 class HashEncoding(nn.Module):
-  """Hash enconding implementation
-  source: https://github.com/yashbhalgat/HashNeRF-pytorch
-  """
+  '''source: https://github.com/yashbhalgat/HashNeRF-pytorch'''
   bounding_box: Any
   n_levels: int = 16
   features_per_level: int = 2
