@@ -136,6 +136,18 @@ def define_flags():
       "legacy_posenc_order", False,
       "If True, revert the positional encoding feature order to an older version of this codebase."
   )
+  flags.DEFINE_string("enc_type", "pos",
+                      "Encoder type. Either 'pos' or 'hash'.")
+  flags.DEFINE_integer("hashenc_n_levels", 16,
+                       "Number of levels for a hash encoding.")
+  flags.DEFINE_integer("hashenc_features_per_level", 2,
+                       "Number of features per level of a hash encoding.")
+  flags.DEFINE_integer("log2_hashmap_size", 19,
+                       "Log2 of the size of the hash encoding.")
+  flags.DEFINE_integer("hashenc_base_resolution", 16,
+                       "Base resolution of the hash encoding.")
+  flags.DEFINE_integer("hashenc_finest_resolution", 512,
+                       "Finest resolution of the hash encoding.")
 
   # Train Flags
   flags.DEFINE_float("lr_init", 5e-4, "The initial learning rate.")
