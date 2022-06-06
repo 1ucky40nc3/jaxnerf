@@ -122,9 +122,9 @@ def log_wandb(tag, value, step):
   wandb.log({tag: value}, step=step)
 
 
-def log(loggers, data, step):
+def log(loggers, tag, value, step):
   for l in loggers:
-    l(data, step)
+    l(tag, value, step)
 
 
 def main(unused_argv):
@@ -201,6 +201,8 @@ def main(unused_argv):
         sync_tensorboard=True
       )
       loggers += (log_wandb,)
+    
+    log = functools.partial(log, loggers=loggers)
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
