@@ -29,6 +29,8 @@ from jax import random
 import jax.numpy as jnp
 import numpy as np
 
+import wandb
+
 from jaxnerf.nerf import datasets
 from jaxnerf.nerf import models
 from jaxnerf.nerf import utils
@@ -126,6 +128,7 @@ def main(unused_argv):
     raise ValueError("train_dir must be set. None set now.")
   if FLAGS.data_dir is None:
     raise ValueError("data_dir must be set. None set now.")
+
   dataset = datasets.get_dataset("train", FLAGS)
   test_dataset = datasets.get_dataset("test", FLAGS)
 
@@ -174,6 +177,12 @@ def main(unused_argv):
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(FLAGS.train_dir)
+
+  wandb.init(
+    project="jaxnerf",
+    config=FLAGS,
+    sync_tensorboard=True
+  )
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
@@ -263,6 +272,8 @@ def main(unused_argv):
     state = jax.device_get(jax.tree_map(lambda x: x[0], state))
     checkpoints.save_checkpoint(
         FLAGS.train_dir, state, int(FLAGS.max_steps), keep=100)
+
+  wandb.finish()
 
 
 if __name__ == "__main__":
