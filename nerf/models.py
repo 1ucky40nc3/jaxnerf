@@ -55,6 +55,13 @@ class NerfModel(nn.Module):
   rgb_activation: Callable[Ellipsis, Any]  # Output RGB activation.
   sigma_activation: Callable[Ellipsis, Any]  # Output sigma activation.
   legacy_posenc_order: bool  # Keep the same ordering as the original tf code.
+  enc_type: str
+  bounding_box: Any
+  hashenc_n_levels: int
+  hashenc_features_per_level: int
+  log2_hashmap_size: int
+  hashenc_base_resolution: int
+  hashenc_finest_resolution: int
 
   @nn.compact
   def __call__(self, rng_0, rng_1, rays, randomized):
@@ -81,12 +88,21 @@ class NerfModel(nn.Module):
         randomized,
         self.lindisp,
     )
-    samples_enc = model_utils.posenc(
-        samples,
-        self.min_deg_point,
-        self.max_deg_point,
-        self.legacy_posenc_order,
-    )
+    if self.enc_type == "pos":
+      samples_enc = model_utils.posenc(
+          samples,
+          self.min_deg_point,
+          self.max_deg_point,
+          self.legacy_posenc_order,
+      )
+    else:
+      samples_enc = model_utils.HashEncoding(
+          self.bounding_box,
+          self.hashenc_n_levels,
+          self.hashenc_features_per_level,
+          self.hashenc_base_resolution,
+          self.hashenc_finest_resolution
+      )(samples)
 
     # Construct the "coarse" MLP.
     coarse_mlp = model_utils.MLP(
@@ -242,7 +258,15 @@ def construct_nerf(key, example_batch, args):
       net_activation=net_activation,
       rgb_activation=rgb_activation,
       sigma_activation=sigma_activation,
-      legacy_posenc_order=args.legacy_posenc_order)
+      legacy_posenc_order=args.legacy_posenc_order,
+      enc_type=args.enc_type,
+      bounding_box=args.bounding_box,
+      hashenc_n_levels=args.hashenc_n_levels,
+      hashenc_features_per_level=args.hashenc_features_per_level,
+      log2_hashmap_size=args.log2_hashmap_size,
+      hashenc_base_resolution=args.hashenc_base_resolution,
+      hashenc_finest_resolution=args.hashenc_finest_resolution
+  )
   rays = example_batch["rays"]
   key1, key2, key3 = random.split(key, num=3)
 
