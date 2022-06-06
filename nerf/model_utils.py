@@ -179,7 +179,7 @@ def hash(coords, log2_hashmap_size):
     for i in range(coords.shape[-1]):
         xor_result ^= coords[..., i] * primes[i]
 
-    return jnp.tensor((1 << log2_hashmap_size) - 1).to(xor_result.device) & xor_result
+    return jnp.array((1 << log2_hashmap_size) - 1) & xor_result
 
 
 def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
@@ -190,8 +190,7 @@ def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
     '''
     box_min, box_max = bounding_box
 
-    if not jnp.all(xyz <= box_max) or not jnp.all(xyz >= box_min):
-        xyz = jnp.clip(xyz, box_min, box_max)
+    xyz = jnp.clip(xyz, box_min, box_max)
 
     grid_size = (box_max-box_min)/resolution
     
@@ -199,8 +198,8 @@ def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
     voxel_min = bottom_left_idx * grid_size + box_min
     voxel_max = voxel_min + jnp.array([1.0, 1.0, 1.0]) * grid_size
 
-    voxel_idx = bottom_left_idx.expand_dims(1) + BOX_OFFSETS
-    hashed_idx = hash(voxel_idx, log2_hashmap_size)
+    voxel_idx = jnp.expand_dims(bottom_left_idx, 1) + BOX_OFFSETS
+    hashed_idx = hash(voxel_idx.astype(jnp.int64), log2_hashmap_size)
 
     return voxel_min, voxel_max, hashed_idx
 
@@ -246,7 +245,7 @@ class HashEncoding(nn.Module):
     b = jnp.exp((
         jnp.log(self.finest_resolution)
          - jnp.log(self.base_resolution)
-      ) / (self.n_levels-1))
+      ) / (self.n_levels - 1))
     
     embeddings = []
     for i in range(self.n_levels):

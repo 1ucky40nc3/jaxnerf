@@ -102,7 +102,8 @@ class NerfModel(nn.Module):
           self.hashenc_features_per_level,
           self.hashenc_base_resolution,
           self.hashenc_finest_resolution
-      )(samples)
+      )(jnp.reshape(samples, [-1, samples.shape[-1]]))
+      samples_enc = jnp.reshape(samples_enc, (*samples.shape[:-1], samples_enc.shape[-1]))
 
     # Construct the "coarse" MLP.
     coarse_mlp = model_utils.MLP(
@@ -161,6 +162,7 @@ class NerfModel(nn.Module):
           self.num_fine_samples,
           randomized,
       )
+      # TODO: model size + enc here
       samples_enc = model_utils.posenc(
           samples,
           self.min_deg_point,
