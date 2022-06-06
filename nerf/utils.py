@@ -148,6 +148,8 @@ def define_flags():
                        "Base resolution of the hash encoding.")
   flags.DEFINE_integer("hashenc_finest_resolution", 512,
                        "Finest resolution of the hash encoding.")
+  flags.DEFINE_list("bounding_box", None,
+                    "A datasets bounding box.")
 
   # Train Flags
   flags.DEFINE_float("lr_init", 5e-4, "The initial learning rate.")
