@@ -114,7 +114,7 @@ def train_step(model, rng, state, batch, lr):
   return new_state, stats, rng
 
 
-def log_tensorboard(writer, tag, value, step):
+def log_tensorboard(tag, value, step, writer=None):
   writer.add_scalar(tag, value, global_step=step)
 
 
