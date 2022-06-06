@@ -174,6 +174,8 @@ def define_flags():
       "better to be x00 for accurate step time record.")
   flags.DEFINE_integer("gc_every", 10000,
                        "the number of steps to run python garbage collection.")
+  flags.DEFINE_bool("log_to_wandb", False,
+                    "Log to TensorBoard and Weights & Biases.")
 
   # Eval Flags
   flags.DEFINE_bool(
