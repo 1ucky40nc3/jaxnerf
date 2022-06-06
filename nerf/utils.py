@@ -25,7 +25,7 @@ import jax.scipy as jsp
 import numpy as np
 from PIL import Image
 import yaml
-from jaxnerf.nerf import datasets
+from nerf import datasets
 
 BASE_DIR = "jaxnerf"
 INTERNAL = False

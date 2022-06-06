@@ -31,9 +31,9 @@ import numpy as np
 
 import wandb
 
-from jaxnerf.nerf import datasets
-from jaxnerf.nerf import models
-from jaxnerf.nerf import utils
+from nerf import datasets
+from nerf import models
+from nerf import utils
 
 FLAGS = flags.FLAGS
 
