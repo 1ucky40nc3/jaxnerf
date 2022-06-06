@@ -23,9 +23,14 @@ import threading
 if not INTERNAL:
   import cv2  # pylint: disable=g-import-not-at-top
 import jax
+import jax.numpy as jnp
 import numpy as np
 from PIL import Image
+
 from nerf import utils
+from nerf.ray_utils import get_rays
+from nerf.ray_utils import get_ray_directions
+from nerf.ray_utils import get_ndc_rays
 
 
 def get_dataset(split, args):
@@ -191,6 +196,43 @@ class Dataset(threading.Thread):
     self.rays = utils.Rays(
         origins=origins, directions=directions, viewdirs=viewdirs)
 
+    
+def get_bbox3d_for_blenderobj(camera_transforms, H, W, near=2.0, far=6.0):
+  '''source: https://github.com/yashbhalgat/HashNeRF-pytorch'''
+  camera_angle_x = float(camera_transforms['camera_angle_x'])
+  focal = 0.5 * W / np.tan(0.5 * camera_angle_x)
+
+  # ray directions in camera coordinates
+  directions = get_ray_directions(H, W, focal)
+
+  min_bound = [100, 100, 100]
+  max_bound = [-100, -100, -100]
+
+  points = []
+
+  for frame in camera_transforms["frames"]:
+    c2w = jnp.array(frame["transform_matrix"], dtype=jnp.float32)
+    rays_o, rays_d = get_rays(directions, c2w).numpy()
+    
+    def find_min_max(pt):
+      for i in range(3):
+        if(min_bound[i] > pt[i]):
+          min_bound[i] = pt[i]
+        if(max_bound[i] < pt[i]):
+          max_bound[i] = pt[i]
+      return
+
+    for i in [0, W-1, H*W-W, H*W-1]:
+      min_point = rays_o[i] + near*rays_d[i]
+      max_point = rays_o[i] + far*rays_d[i]
+      points += [min_point, max_point]
+      find_min_max(min_point)
+      find_min_max(max_point)
+
+  return (
+    jnp.array(min_bound) - jnp.array([1.0, 1.0, 1.0]), 
+    jnp.array(max_bound) + jnp.array([1.0, 1.0, 1.0]))
+
 
 class Blender(Dataset):
   """Blender Dataset."""
@@ -232,6 +274,8 @@ class Blender(Dataset):
     camera_angle_x = float(meta["camera_angle_x"])
     self.focal = .5 * self.w / np.tan(.5 * camera_angle_x)
     self.n_examples = self.images.shape[0]
+    self.bounding_box = get_bbox3d_for_blenderobj(
+      meta, self.h, self.w, near=2.0, far=6.0)
 
 
 class LLFF(Dataset):
