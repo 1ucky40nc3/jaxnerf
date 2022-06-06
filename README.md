@@ -1,5 +1,8 @@
-## Note:
-This is a "fork" of the [google-research/jaxnerf](https://github.com/google-research/google-research/tree/master/jaxnerf) implementation of educational purposes. Because the origal work is licences via a Apache License 2.0 this should not be a problem. **Be aware that this code is not my original work!** Big thanks to the great work of the original authors and other collaborators!
+# 👋 Note
+
+This is a "fork" of the [google-research/jaxnerf](https://github.com/google-research/google-research/tree/master/jaxnerf) implementation for educational purposes. Because the original work is under an *Apache License 2.0* license this should not be a problem. **Be aware that this code is not my original work!** Big thanks to the great work of the original authors and other collaborators! 🤗
+
+---
 
 # JaxNeRF
 
