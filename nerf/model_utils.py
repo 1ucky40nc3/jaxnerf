@@ -263,7 +263,6 @@ class HashEncoding(nn.Module):
       embeddings.append(embedding)
 
     return jnp.concatenate(embeddings, axis=-1)
-    
 
 
 def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
