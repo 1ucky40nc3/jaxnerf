@@ -195,7 +195,7 @@ def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
 
     grid_size = (box_max-box_min)/resolution
     
-    bottom_left_idx = jnp.floor((xyz - box_min) / grid_size).astype(jnp.float)
+    bottom_left_idx = jnp.floor((xyz - box_min) / grid_size).astype(jnp.float32)
     voxel_min = bottom_left_idx * grid_size + box_min
     voxel_max = voxel_min + jnp.array([1.0, 1.0, 1.0]) * grid_size
 
