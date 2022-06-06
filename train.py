@@ -114,13 +114,12 @@ def train_step(model, rng, state, batch, lr):
   return new_state, stats, rng
 
 
-def log_tensorboard(writer, data, step):
-  data = list(data.items())
-  writer.add_scalar(*data[0], global_step=step)
+def log_tensorboard(writer, tag, value, step):
+  writer.add_scalar(tag, value, global_step=step)
 
 
-def log_wandb(logger, data, step):
-  wandb.log(data, step=step)
+def log_wandb(tag, value, step):
+  wandb.log({tag: value}, step=step)
 
 
 def log(loggers, data, step):
