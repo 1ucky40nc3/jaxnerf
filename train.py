@@ -122,7 +122,7 @@ def log_wandb(tag, value, step):
   wandb.log({tag: value}, step=step)
 
 
-def log_value(loggers, tag, value, step):
+def log_value(tag, value, step, loggers=[]):
   for l in loggers:
     l(tag, value, step)
 
