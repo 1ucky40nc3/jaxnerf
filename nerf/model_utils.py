@@ -18,6 +18,8 @@
 import functools
 from typing import Any, Callable
 
+from torch import embedding
+
 from flax import linen as nn
 import jax
 from jax import lax
@@ -160,6 +162,111 @@ def posenc(x, min_deg, max_deg, legacy_posenc_order=False):
                      list(x.shape[:-1]) + [-1])
     four_feat = jnp.sin(jnp.concatenate([xb, xb + 0.5 * jnp.pi], axis=-1))
   return jnp.concatenate([x] + [four_feat], axis=-1)
+
+
+BOX_OFFSETS = torch.tensor([[[i,j,k] for i in [0, 1] for j in [0, 1] for k in [0, 1]]],
+                               device='cuda')
+
+
+def hash(coords, log2_hashmap_size):
+    '''
+    coords: this function can process upto 7 dim coordinates
+    log2T:  logarithm of T w.r.t 2
+    '''
+    primes = [1, 2654435761, 805459861, 3674653429, 2097192037, 1434869437, 2165219737]
+
+    xor_result = torch.zeros_like(coords)[..., 0]
+    for i in range(coords.shape[-1]):
+        xor_result ^= coords[..., i] * primes[i]
+
+    return torch.tensor((1 << log2_hashmap_size)-1).to(xor_result.device) & xor_result
+
+
+def get_voxel_vertices(xyz, bounding_box, resolution, log2_hashmap_size):
+    '''
+    xyz: 3D coordinates of samples. B x 3
+    bounding_box: min and max x,y,z coordinates of object bbox
+    resolution: number of voxels per axis
+    '''
+    box_min, box_max = bounding_box
+
+    if not torch.all(xyz <= box_max) or not torch.all(xyz >= box_min):
+        xyz = torch.clamp(xyz, min=box_min, max=box_max)
+
+    grid_size = (box_max-box_min)/resolution
+    
+    bottom_left_idx = torch.floor((xyz - box_min) / grid_size).int()
+    voxel_min = bottom_left_idx*grid_size + box_min
+    voxel_max = voxel_min + torch.tensor([1.0, 1.0, 1.0])*grid_size
+
+    voxel_idx = bottom_left_idx.unsqueeze(1) + BOX_OFFSETS
+    hashed_idx = hash(voxel_idx, log2_hashmap_size)
+
+    return voxel_min, voxel_max, hashed_idx
+
+
+def trilinear_interpolation(x, voxel_min, voxel_max, voxel_embedds):
+  """Compute a trilinear interpolation.
+  source: https://github.com/yashbhalgat/HashNeRF-pytorch
+  x: B x 3
+  voxel_min_vertex: B x 3
+  voxel_max_vertex: B x 3
+  voxel_embedds: B x 8 x 2
+  """
+  # source: https://en.wikipedia.org/wiki/Trilinear_interpolation
+  weights = (x - voxel_min) / (voxel_max - voxel_min) # B x 3
+
+  # step 1
+  # 0->000, 1->001, 2->010, 3->011, 4->100, 5->101, 6->110, 7->111
+  c00 = voxel_embedds[:,0] * (1 - weights[:,0][:,None]) + voxel_embedds[:,4] * weights[:,0][:,None]
+  c01 = voxel_embedds[:,1] * (1 - weights[:,0][:,None]) + voxel_embedds[:,5] * weights[:,0][:,None]
+  c10 = voxel_embedds[:,2] * (1 - weights[:,0][:,None]) + voxel_embedds[:,6] * weights[:,0][:,None]
+  c11 = voxel_embedds[:,3] * (1 - weights[:,0][:,None]) + voxel_embedds[:,7] * weights[:,0][:,None]
+
+  # step 2
+  c0 = c00 * (1 - weights[:,1][:,None]) + c10 * weights[:,1][:,None]
+  c1 = c01 * (1 - weights[:,1][:,None]) + c11 * weights[:,1][:,None]
+
+  # step 3
+  c = c0 * (1 - weights[:,2][:,None]) + c1 * weights[:,2][:,None]
+
+  return c
+
+
+class HashEncoding(nn.Module):
+  """Hash enconding implementation
+  source: https://github.com/yashbhalgat/HashNeRF-pytorch
+  """
+  bounding_box: Any
+  n_levels: int = 16
+  features_per_level: int = 2
+  log2_hashmap_size: int = 19
+  base_resolution: int = 16
+  finest_resolution: int = 512
+
+  @nn.compact
+  def __call__(self, x):
+    b = jnp.exp((
+        jnp.log(self.finest_resolution)
+         - jnp.log(self.base_resolution)
+      ) / (self.n_levels-1))
+    
+    embeddings = []
+    for i in range(self.n_levels):
+      resolution = jnp.floor(self.base_resolution * b**i)
+      voxel_min, voxel_max, hashed_idx = get_voxel_vertices(
+        x, self.bounding_box, resolution, self.log2_hashmap_size)
+      voxel_embedds = nn.Embed(
+        2**self.log2_hashmap_size,
+        self.features_per_level
+      )(hashed_idx)
+
+      embedding = trilinear_interpolation(
+        x, voxel_min, voxel_max, voxel_embedds)
+      embeddings.append(embedding)
+
+    return jnp.concatenate(embeddings, axis=-1)
+    
 
 
 def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
